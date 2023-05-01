@@ -1,0 +1,1 @@
+This is window app version of DietTracker builded by PyQt.
