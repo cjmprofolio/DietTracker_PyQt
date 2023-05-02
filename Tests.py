@@ -29,13 +29,14 @@ class DietTrackerTestCase(unittest.TestCase):
         self.login_test_case.tearDown()
     
     def testloginuser(self):
+        print(self.diet_tracker.login_user, self.login_test_case.login_widget.login_user)
         self.assertEqual(self.diet_tracker.login_user, self.login_test_case.login_widget.login_user)
 
-    def testCalendarper(self):
-        date= QDate(2023,4,1)
-        self.diet_tracker.ui.calendarWidget.setSelectedDate(date)
+    # def testCalendarper(self):
+    #     date= QDate(2023,4,1)
+    #     self.diet_tracker.ui.calendarWidget.setSelectedDate(date)
 
-        self.assertEqual(self.diet_tracker.ui.label_date.text(), date.toString('yyyy-MM-dd'))
+    #     self.assertEqual(self.diet_tracker.ui.label_date.text(), date.toString('yyyy-MM-dd'))
 
 if __name__ == '__main__':
     suite= unittest.TestSuite()

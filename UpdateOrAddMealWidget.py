@@ -18,6 +18,7 @@ class UpdateOrAddMealWidget(QWidget):
         self.index= index
         self.date= kwargs['date']
         self.login_user= kwargs['login_user']
+        self.db= kwargs['db']
 
         # pass the date info to lineEdit
         self.ui.dateEdit_date.setDate(self.date)
@@ -51,42 +52,33 @@ class UpdateOrAddMealWidget(QWidget):
 
     def UpdateOrAddMeal(self):
         # instantiate a connection
-        conn= Conn2db(dbname='Qtdb')
+        self.db.open()
 
-        query= conn.query()
-        
+        query= self.db.query()
+        date, meal= self.ui.dateEdit_date.text(), self.ui.comboBox_meal.currentText()
+
         if not self.index:
             # check if same there is same date and meal already in meals table
-            query.prepare("SELECT * FROM meals WHERE date= :date AND meal= :meal")
-            query.bindValue(":date", self.ui.dateEdit_date.text())
-            query.bindValue(":meal", self.ui.comboBox_meal.currentText())
-            query.exec()
+            query.exec(f"SELECT * FROM meals WHERE date= '{date}' AND meal= '{meal}'")
 
             if query.next():
                 MsgBox(QMessageBox.Icon.Critical, f'There is already a meal record in db.')
                 
         else:
             # delete the current record first
-            query.prepare("DELETE FROM meals WHERE date= :date AND meal= :meal")
-            query.bindValue(":date", self.ui.dateEdit_date.text())
-            query.bindValue(":meal", self.ui.comboBox_meal.currentText())
-            query.exec()
+            query.exec(f"DELETE FROM meals WHERE date= '{date}' AND meal= '{meal}'")
 
         # check the input fields before add to sql table
         if CheckValidate([self.ui.lineEdit_food, self.ui.lineEdit_place]):
 
             # Add new meal record to the db
-            query.prepare("INSERT INTO meals (name, date, meal, food, calorie, place)"
-                "VALUES (:name, :date, :meal, :food, :calorie, :place)")
-            query.bindValue(":name", self.login_user) 
-            query.bindValue(":date", self.ui.dateEdit_date.text())
-            query.bindValue(":meal", self.ui.comboBox_meal.currentText())
-            query.bindValue(":food", self.ui.lineEdit_food.text())
-            query.bindValue(":calorie", self.ui.spinBox_calorie.value())
-            query.bindValue(":place", self.ui.lineEdit_place.text())
-            query.exec()
+            food= self.ui.lineEdit_food.text()
+            calorie= self.ui.spinBox_calorie.value()
+            place= self.ui.lineEdit_place.text()
+            query.exec(f" INSERT INTO meals (name, date, meal, food, calorie, place)\
+                VALUES ('{self.login_user}', '{date}', '{meal}', '{food}', {calorie}, '{place}')")
             
-        conn.disconn()
+        self.db.close()
         self.main_window.ShowRecords(QDate.fromString(self.ui.dateEdit_date.text(), 'yyyy-MM-dd'))
             
 

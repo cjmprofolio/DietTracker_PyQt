@@ -1,6 +1,6 @@
 import sys
 from werkzeug.security import check_password_hash
-from PyQt6.QtWidgets import QWidget, QApplication
+from PyQt6.QtWidgets import QWidget, QApplication, QMainWindow
 from LoginForm import Ui_Form_login
 from DietTrackerMainWindow import DietTrackerWindow
 from RegisterWidget import RegisterWidget
@@ -15,6 +15,9 @@ class LoginWidget(QWidget):
         self.ui= Ui_Form_login()
         self.ui.setupUi(self)
 
+        # Connect to db
+        self.db= Conn2db(dbname='Qtdb', connect_name='myconnection')
+        
         # init a login user to None
         self.login_user= None
 
@@ -30,35 +33,28 @@ class LoginWidget(QWidget):
 
     # connect to Qtdb and check if the user is in users table
     def LoginButton(self):
-        conn= Conn2db(dbname='Qtdb')
 
-        query= conn.query()
-        query.prepare("SELECT * FROM users WHERE username= :username")
-        query.bindValue(":username", self.ui.lineEdit_username.text())
-        query.exec()
+        self.db.open()
+
+        query= self.db.query()
+        query.exec(f"SELECT * FROM users WHERE username= '{self.ui.lineEdit_username.text()}'")
         
         # if login user is in user table then jump to DietTrackerWindow
         if query.next():
-            conn.disconn()
             pwhash= query.value(1)
             if check_password_hash(pwhash, self.ui.lineEdit_password.text()):
                 self.login_user= self.ui.lineEdit_username.text()
-                self.main_window= DietTrackerWindow(self, self.login_user)# pass LoginWidget and login_user to to DietTrackerWindow
+                self.main_window= DietTrackerWindow(self, self.login_user, self.db) # pass LoginWidget and login_user to to DietTrackerWindow
                 self.close()
                 self.main_window.show()
         else:
-            conn.disconn()
             self.ui.label_msg.setText('There is wrong with username or password...')
         self.ui.lineEdit_username.clear()
         self.ui.lineEdit_password.clear()
-
+        
         
     
     def RegieterButton(self):
-        # check the db connection first
-        conn= Conn2db('Qtdb')
-        conn.disconn()
-        
         self.RegisterForm = RegisterWidget(self) # pass LoginWidget to RegisterWidget
         self.RegisterForm.show()
         self.close()

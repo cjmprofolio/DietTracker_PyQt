@@ -1,5 +1,5 @@
 from typing import Union
-from PyQt6.QtSql import QSqlQueryModel
+from PyQt6.QtSql import QSqlQueryModel, QSqlQuery
 from PyQt6.QtCore import QDate, QModelIndex
 from PyQt6.QtWidgets import QWidget, QMainWindow, QHeaderView
 from DietTrackerWindow import Ui_MainWindow_DietTracker
@@ -8,7 +8,7 @@ from Utils import Conn2db
 
 
 class DietTrackerWindow(QMainWindow):
-    def __init__(self, login_widget: QWidget , login_user: str):
+    def __init__(self, login_widget: QWidget,login_user: str, db: Conn2db):
         super().__init__()
 
         # Setup the ui form from designer
@@ -17,16 +17,17 @@ class DietTrackerWindow(QMainWindow):
         self.login_widget= login_widget
         self.login_user= login_user
         self.current_date= QDate.currentDate()
-    
+        
+        # Connect to db
+        self.db= db
+
         # Set start_date and end_date
         self.ResetParams()
-
 
         # set label text
         self.ui.label_welcome.setText(f'Welcome to DietTracker, {login_user} !!')
         self.ui.label_date.setText(self.current_date.toString('yyyy-MM-dd'))
 
-    
         # connect signal to slot
         # calendar part + middle table view part
         self.ui.calendarWidget.clicked.connect(self.Date2Str)
@@ -60,7 +61,8 @@ class DietTrackerWindow(QMainWindow):
         self.ui.tableView_meal.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.ui.tableView_meal_all.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         
-    
+       
+
     # log out the current user and open login_widget
     def LogOut(self):
         self.close()
@@ -72,35 +74,33 @@ class DietTrackerWindow(QMainWindow):
 
     # set the QSqlTableModel to tableview and show the meal records
     def ShowRecords(self, date: QDate= QDate.currentDate()):
-        # Connect to db
         
-        conn= Conn2db(dbname='Qtdb')
-        meal_model= QSqlQueryModel(None)
-        query= conn.query()
-        query.prepare("WITH rank_table AS \
+        self.db.open()
+
+        meal_model= QSqlQueryModel()
+        query= self.db.query()
+
+        date_str= date.toString('yyyy-MM-dd')
+        query.exec(f"WITH rank_table AS \
             (SELECT *, \
-                RANK() over(PARTITION BY date >= date_trunc('week', CAST(:date AS DATE)), \
-                date < date_trunc('week', CAST(:date AS DATE)) + INTERVAL '7 days' ORDER BY calorie DESC) as cal_wk_ranking FROM meals)\
-            SELECT meal, food, calorie, cal_wk_ranking, place FROM rank_table WHERE date= :date\
+                RANK() over(PARTITION BY date >= date_trunc('week', CAST('{date_str}' AS DATE)), \
+                date < date_trunc('week', CAST('{date_str}' AS DATE)) + INTERVAL '7 days' ORDER BY calorie DESC) as cal_wk_ranking FROM meals)\
+            SELECT meal, food, calorie, cal_wk_ranking, place FROM rank_table WHERE date= '{date_str}'\
                 ORDER BY CASE meal WHEN 'Breakfast' THEN 1 WHEN 'Brunch' THEN 2 WHEN 'Lunch' THEN 3\
                     WHEN 'Dessert' THEN 4 WHEN 'Dinner' THEN 5 WHEN 'Mid-night snack' THEN 6 END")
-        query.bindValue(':date', date.toString('yyyy-MM-dd'))
 
-        query.exec()
         meal_model.setQuery(query)
         self.ui.tableView_meal.setModel(meal_model)
         self.ui.label_date.setText(date.toString('yyyy-MM-dd'))
-        conn.disconn()
-            
+        
+        self.db.close()
+
 
     # Update meal to current/selected date
     def UpdateOrAddMeal(self, index: QModelIndex):
-        # check the db connection first
-        conn= Conn2db('Qtdb')
-        conn.disconn()
 
         date= self.ui.calendarWidget.selectedDate()
-        params= {'date': date, 'login_user': self.login_user}
+        params= {'date': date, 'login_user': self.login_user, 'db': self.db}
         self.AddForm = UpdateOrAddMealWidget(main_window= self, index= index, **params) # pass main_window to AddMealWidget
         self.AddForm.show()
         
@@ -110,20 +110,21 @@ class DietTrackerWindow(QMainWindow):
         model= self.ui.tableView_meal.model()
         rows= set(index.row() for index in self.ui.tableView_meal.selectedIndexes())
 
-        conn= Conn2db('Qtdb')
+        self.db.open()
         
         for row in sorted(rows, reverse=True):
             # get the meal record
             meal= model.data(model.index(row, 0))
+            date= self.ui.label_date.text()
 
-            query= conn.query()
-            query.prepare("DELETE FROM meals WHERE date= :date AND meal= :meal")
-            query.bindValue(':date', self.ui.label_date.text())
-            query.bindValue(':meal', meal)
-            query.exec()
+            query= self.db.query()
+            query.exec(f"DELETE FROM meals WHERE date= '{date}' AND meal= '{meal}'")
+
         # close the db connection and show the reecords after deleting 
-        conn.disconn()
+        
+        self.db.close()
         self.ShowRecords(self.ui.calendarWidget.selectedDate())
+
 
     # reset all parameters 
     def ResetParams(self):
@@ -162,10 +163,11 @@ class DietTrackerWindow(QMainWindow):
         query_str+= " ORDER BY date"
         
                                
-        conn= Conn2db('Qtdb')
-        query= conn.query()
+        self.db.open()
+        query= self.db.query()
         meal_model= QSqlQueryModel()
         query.exec(query_str)
         meal_model.setQuery(query)
         self.ui.tableView_meal_all.setModel(meal_model)
-        conn.disconn()
+        
+        self.db.open()

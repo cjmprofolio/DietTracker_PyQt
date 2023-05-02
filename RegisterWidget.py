@@ -9,13 +9,16 @@ from Utils import Conn2db, CreateValidator, CheckValidate, MsgBox
 
 
 class RegisterWidget(QWidget):
-    def __init__(self, login_widget:QWidget):
+    def __init__(self, login_widget:QWidget, db: Conn2db):
         super().__init__()
         # Setup Ui designed by pyqt6 designer
         self.ui= Ui_Form_register()
         self.ui.setupUi(self)
         
         self.login_widget= login_widget
+
+        # Connect to db
+        self.db= db
 
         # Setup captcha 
         self.SetupCapcha()
@@ -47,13 +50,12 @@ class RegisterWidget(QWidget):
         # check if input field is valid
         else: 
             if CheckValidate([self.ui.lineEdit_username]):
-                conn= Conn2db(dbname='Qtdb')
+                self.db.open()
 
-                query= conn.query()
-                query.prepare("INSERT INTO users (username, password) Values (:username, :password)")
-                query.bindValue(':username', self.ui.lineEdit_username.text())
-                query.bindValue(':password', generate_password_hash(self.ui.lineEdit_password_1.text()))
-                query.exec()
+                query= self.db.query()
+                username= self.ui.lineEdit_username.text()
+                password= generate_password_hash(self.ui.lineEdit_password_1.text())
+                query.exec(f"INSERT INTO users (username, password) Values ('{username}', '{password}')")
                 
                 MsgBox(text="You have registered successfully!!!")
 
@@ -63,7 +65,7 @@ class RegisterWidget(QWidget):
 
                 self.login_widget.show()
 
-                conn.disconn()
+                self.db.close()
                  
 
     # Set captsha and pixmap
@@ -72,25 +74,25 @@ class RegisterWidget(QWidget):
             os.remove('./tmp/captcha.png')
         except:
             pass
-        self.captcha= ''.join(random.choices(string.ascii_letters+string.digits, k= 5))
-        self.captcha_img= ImageCaptcha().write(str(self.captcha), './tmp/captcha.png')
+        self.captcha= ''.join(random.choices(string.digits, k= 5))
+        self.captcha_img= ImageCaptcha().write(self.captcha, './tmp/captcha.png')
         self.ui.label_captcha_pixmap.setPixmap(QPixmap('./tmp/captcha.png'))
 
     # check if username already exist
     def CheckUsername(self):
-        conn= Conn2db(dbname='Qtdb')
         
-        query= conn.query()
-        query.prepare("SELECT * FROM users WHERE username= :username")
-        query.bindValue(':username', self.ui.lineEdit_username.text())
-        query.exec()
+        self.db.open()
+        
+        query= self.db.query()
+        username= self.ui.lineEdit_username.text()
+        query.exec(f"SELECT * FROM users WHERE username= '{username}'")
 
         if query.next():
             self.ui.lineEdit_username.clear()
             MsgBox(text="Name is already been used...")
 
-        conn.disconn()
-
+        self.db.close()
+        
 
     # check if two password inputs are identical
     def ComparePassword(self):
