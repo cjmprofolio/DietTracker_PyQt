@@ -2,7 +2,7 @@ from typing import Union
 from PyQt6.QtCore import QDate, QModelIndex
 from PyQt6.QtWidgets import QWidget, QMessageBox, QMainWindow
 from UpdateOrAddmealForm import Ui_Form_UpdateOrAddmeal
-from Utils import Conn2db, CreateValidator, CheckValidate, MsgBox
+from Utils import CreateValidator, CheckValidate, MsgBox
 
 
 class UpdateOrAddMealWidget(QWidget):

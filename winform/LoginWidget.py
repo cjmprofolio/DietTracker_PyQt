@@ -1,6 +1,6 @@
 import sys
 from werkzeug.security import check_password_hash
-from PyQt6.QtWidgets import QWidget, QApplication, QMainWindow
+from PyQt6.QtWidgets import QWidget, QApplication
 from LoginForm import Ui_Form_login
 from DietTrackerMainWindow import DietTrackerWindow
 from RegisterWidget import RegisterWidget

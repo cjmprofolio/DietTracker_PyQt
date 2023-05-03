@@ -1,5 +1,5 @@
 from typing import Union
-from PyQt6.QtSql import QSqlQueryModel, QSqlQuery
+from PyQt6.QtSql import QSqlQueryModel
 from PyQt6.QtCore import QDate, QModelIndex
 from PyQt6.QtWidgets import QWidget, QMainWindow, QHeaderView
 from DietTrackerWindow import Ui_MainWindow_DietTracker
