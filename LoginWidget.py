@@ -55,7 +55,7 @@ class LoginWidget(QWidget):
         
     
     def RegieterButton(self):
-        self.RegisterForm = RegisterWidget(self) # pass LoginWidget to RegisterWidget
+        self.RegisterForm = RegisterWidget(self, self.db) # pass LoginWidget to RegisterWidget
         self.RegisterForm.show()
         self.close()
         

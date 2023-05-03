@@ -23,14 +23,14 @@ class DietTrackerTestCase(unittest.TestCase):
     def setUp(self):
         self.login_test_case = LoginTestCase()
         self.login_test_case.setUp()
-        self.diet_tracker = DietTrackerWindow(self.login_test_case.login_widget, self.login_test_case.login_widget.login_user)
+        self.diet_tracker = DietTrackerWindow(self.login_test_case, 'jiaming')
     
     def tearDown(self):
         self.login_test_case.tearDown()
     
     def testloginuser(self):
-        print(self.diet_tracker.login_user, self.login_test_case.login_widget.login_user)
-        self.assertEqual(self.diet_tracker.login_user, self.login_test_case.login_widget.login_user)
+        # print(self.diet_tracker.login_user, self.login_test_case.login_widget.login_user)
+        self.assertEqual(self.diet_tracker.login_user, 'jiaming')
 
     # def testCalendarper(self):
     #     date= QDate(2023,4,1)
