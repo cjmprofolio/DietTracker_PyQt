@@ -1,8 +1,9 @@
+.DS_Store
 env
 .env
+.gitignore
 __pycache__
 .qt_for_python/
 ./ui/__pycache__
 tmp
 Tests.py
-.gitignore
